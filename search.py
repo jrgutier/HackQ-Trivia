@@ -120,7 +120,7 @@ def clean_html(html):
     return unidecode(unescape(cleaned.strip()))
 
 
-async def get_clean_texts(urls, timeout=1.5, headers=HEADERS):
+async def get_clean_texts(urls, timeout=4, headers=HEADERS):
     responses = await networking.get_responses(urls, timeout, headers)
 
     return [clean_html(r).lower() for r in responses]

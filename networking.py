@@ -25,6 +25,7 @@ async def get_responses(urls, timeout, headers):
     tasks = []
     async with aiohttp.ClientSession(headers=headers) as session:
         for url in urls:
+            logging.info(url)
             task = asyncio.ensure_future(fetch(url, session, timeout))
             tasks.append(task)
 
