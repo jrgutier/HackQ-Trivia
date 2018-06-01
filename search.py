@@ -7,8 +7,21 @@ from nltk.corpus import stopwords
 from nltk.tag.perceptron import PerceptronTagger
 from nltk.tokenize import RegexpTokenizer
 from unidecode import unidecode
+import json
+import os
 
 import networking
+
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "conn_settings.txt"), "r") as conn_settings:
+    settings = conn_settings.read().splitlines()
+    settings = [line for line in settings if line != "" and line != " "]
+
+    try:
+        GOOGLE_API_KEY = settings[1].split("=")[1]
+        CSE_ID = settings[2].split("=")[1]
+    except IndexError as e:
+        logging.fatal(f"Settings read error: {settings}")
+        raise e
 
 STOP = set(stopwords.words("english")) - {"most", "least"}
 tokenizer = RegexpTokenizer(r"\w+")
@@ -17,8 +30,8 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gec
            "Accept": "*/*",
            "Accept-Language": "en-US,en;q=0.5",
            "Accept-Encoding": "gzip, deflate"}
-GOOGLE_URL = "https://www.google.com/search?q={}&ie=utf-8&oe=utf-8&client=firefox-b-1-ab"
-
+GOOGLE_URL = "https://www.googleapis.com/customsearch/v1?q={{}}&key={}&cx={}".format(GOOGLE_API_KEY,CSE_ID)
+print(GOOGLE_URL)
 
 def find_keywords(words):
     """
@@ -63,14 +76,11 @@ def find_q_word_location(question_lower):
 
 
 def get_google_links(page, num_results):
-    soup = BeautifulSoup(page, "html.parser")
-    results = soup.findAll("h3", {"class": "r"})
+    results = json.loads(page)
 
     links = []
-    for r in results:
-        url = r.find("a")
-        if url is not None:
-            links.append(url["href"])
+    for r in results["items"]:
+        links.append(r["link"])
     links = list(dict.fromkeys(links))  # Remove duplicates while preserving order
 
     return links[:num_results]
@@ -83,12 +93,9 @@ async def search_google(question, num_results):
     :param num_results: Number of results to return
     :return: List of length num_results of urls retrieved from the search
     """
-    # Could use Google's Custom Search API here, limit of 100 queries per day
-    # result = service.cse().list(q=question, cx=CSE_ID, num=num_results).execute()
-    # return result["items"]
+
     page = await networking.get_response(GOOGLE_URL.format(question), timeout=5, headers=HEADERS)
     return get_google_links(page, num_results)
-
 
 async def multiple_search(questions, num_results):
     queries = list(map(GOOGLE_URL.format, questions))

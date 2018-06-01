@@ -38,7 +38,7 @@ async def answer_question(question, original_answers):
         question_keywords[question_keywords.index("1placeholder1")] = quote
 
     print(question_keywords)
-    search_results = await search.search_google("+".join(question_keywords), 5)
+    search_results = await search.search_google("+".join(question_keywords), 10)
     print(search_results)
 
     search_text = [x.translate(punctuation_to_none) for x in await search.get_clean_texts(search_results)]
@@ -132,7 +132,7 @@ async def __search_method3(question_keywords, question_key_nouns, answers, rever
     :return: Answer whose search results contain the most keywords of the question
     """
     print("Running method 3")
-    search_results = await search.multiple_search(answers, 5)
+    search_results = await search.multiple_search(answers, 10)
     print("Search processed")
     answer_lengths = list(map(len, search_results))
     search_results = itertools.chain.from_iterable(search_results)
@@ -181,6 +181,6 @@ async def __search_method3(question_keywords, question_key_nouns, answers, rever
     print(f"Noun scores: {noun_scores}")
     if set(noun_scores.values()) != {0}:
         return min(noun_scores, key=noun_scores.get) if reverse else max(noun_scores, key=noun_scores.get)
-    if set(keyword_scores.values()) != {0}:
-        return min(keyword_scores, key=keyword_scores.get) if reverse else max(keyword_scores, key=keyword_scores.get)
+    # if set(keyword_scores.values()) != {0}:
+    #     return min(keyword_scores, key=keyword_scores.get) if reverse else max(keyword_scores, key=keyword_scores.get)
     return ""
