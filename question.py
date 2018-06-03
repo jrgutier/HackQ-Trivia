@@ -3,10 +3,9 @@ import itertools
 import re
 import time
 from collections import defaultdict
-
 from colorama import Fore, Style
-
 import search
+import logging
 
 punctuation_to_none = str.maketrans({key: None for key in "!\"#$%&\'()*+,-.:;<=>?@[\\]^_`{|}~�"})
 punctuation_to_space = str.maketrans({key: " " for key in "!\"#$%&\'()*+,-.:;<=>?@[\\]^_`{|}~�"})
@@ -21,7 +20,8 @@ async def answer_question(question, original_answers):
         answers.append(ans.translate(punctuation_to_none))
         answers.append(ans.translate(punctuation_to_space))
     answers = list(dict.fromkeys(answers))
-    print(answers)
+    logging.info(question)
+    logging.info(original_answers)
 
     question_lower = question.lower()
 
@@ -38,33 +38,30 @@ async def answer_question(question, original_answers):
     for quote in quoted:
         question_keywords[question_keywords.index("1placeholder1")] = quote
 
-    print(question_keywords)
+    logging.info(question_keywords)
     await asyncio.gather(
         search_method1_2_stub(question_keywords, answers, reverse),
-        search_method3_stub(question_keywords, quoted, question_lower, question, original_answers, reverse)
+        # search_method3_stub(question_keywords, quoted, question_lower, question, original_answers, reverse)
     )
 
     print(f"Search took {time.time() - start} seconds")
 
 
 async def search_method1_2_stub(question_keywords, answers, reverse):
-    start = time.time()
-
-    search_results = await search.search_google("+".join(question_keywords), 10)
-    print(search_results)
+    search_results = await search.search_google("+".join(question_keywords), 50)
+    search_results = itertools.chain.from_iterable(search_results)
 
     search_text = [x.translate(punctuation_to_none) for x in await search.get_clean_texts(search_results)]
 
     best_answer = await __search_method1(search_text, answers, reverse)
     if best_answer != "":
-        print(f"{Fore.GREEN}method1: {best_answer}{Style.RESET_ALL}\n")
+        print(f"{Fore.GREEN}{best_answer}{Style.RESET_ALL}\n")
     else:
         best_answer = await __search_method2(search_text, answers, reverse)
         if best_answer != "":
-            print(f"{Fore.GREEN}method2: {best_answer}{Style.RESET_ALL}\n")
-
-    print(f"Search method1+2 took {time.time() - start} seconds")
-
+            print(f"{Fore.GREEN}{best_answer}{Style.RESET_ALL}\n")
+    logging.info(best_answer)
+    
 async def search_method3_stub(question_keywords, quoted, question_lower, question, original_answers, reverse):
     start = time.time()
     # Get key nouns for Method 3

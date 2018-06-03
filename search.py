@@ -9,8 +9,9 @@ from nltk.tokenize import RegexpTokenizer
 from unidecode import unidecode
 import json
 import os
-
 import networking
+import math
+import logging
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "conn_settings.txt"), "r") as conn_settings:
     settings = conn_settings.read().splitlines()
@@ -30,8 +31,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gec
            "Accept": "*/*",
            "Accept-Language": "en-US,en;q=0.5",
            "Accept-Encoding": "gzip, deflate"}
-GOOGLE_URL = "https://www.googleapis.com/customsearch/v1?q={{}}&key={}&cx={}".format(GOOGLE_API_KEY,CSE_ID)
-print(GOOGLE_URL)
+GOOGLE_URL = "https://www.googleapis.com/customsearch/v1?q={{}}&key={}&cx={}&start={{}}".format(GOOGLE_API_KEY,CSE_ID)
 
 def find_keywords(words):
     """
@@ -94,8 +94,11 @@ async def search_google(question, num_results):
     :return: List of length num_results of urls retrieved from the search
     """
 
-    page = await networking.get_response(GOOGLE_URL.format(question), timeout=5, headers=HEADERS)
-    return get_google_links(page, num_results)
+    queries = list(map(GOOGLE_URL.format, [question] * math.ceil(num_results/10), list(range(1, num_results, 10))))
+    logging.info(queries)
+    pages = await networking.get_responses(queries, timeout=5, headers=HEADERS)
+    link_list = [get_google_links(page, num_results) for page in pages]
+    return link_list
 
 async def multiple_search(questions, num_results):
     queries = list(map(GOOGLE_URL.format, questions))
