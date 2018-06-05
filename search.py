@@ -12,6 +12,8 @@ import os
 import networking
 import math
 import logging
+import itertools
+
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "conn_settings.txt"), "r") as conn_settings:
     settings = conn_settings.read().splitlines()
@@ -31,7 +33,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gec
            "Accept": "*/*",
            "Accept-Language": "en-US,en;q=0.5",
            "Accept-Encoding": "gzip, deflate"}
-GOOGLE_URL = "https://www.googleapis.com/customsearch/v1?q={{}}&key={}&cx={}&start={{}}".format(GOOGLE_API_KEY,CSE_ID)
+GOOGLE_URL = "https://www.googleapis.com/customsearch/v1?q={{}}+-filetype%3Apdf&key={}&cx={}&start={{}}".format(GOOGLE_API_KEY,CSE_ID)
 
 def find_keywords(words):
     """
@@ -101,8 +103,10 @@ async def search_google(question, num_results):
     return link_list
 
 async def multiple_search(questions, num_results):
-    queries = list(map(GOOGLE_URL.format, questions))
-    pages = await networking.get_responses(queries, timeout=5, headers=HEADERS)
+    queries = []
+    for question in questions:
+        queries.append(map(GOOGLE_URL.format, [question] * math.ceil(num_results/10), list(range(1, num_results, 10))))
+    pages = await networking.get_responses(itertools.chain.from_iterable(queries), timeout=5, headers=HEADERS)
     link_list = [get_google_links(page, num_results) for page in pages]
     return link_list
 
